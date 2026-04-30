@@ -1,172 +1,142 @@
-# 💳 Credit Risk Analysis — Probability of Default Modelling
+# 🛒 E-Commerce Customer Churn Analysis & Prediction
 
 ## 📌 Project Overview
-This project builds a full credit risk analysis pipeline on a financial dataset using both MySQL and Python. It covers data preprocessing, SQL-based feature engineering, advanced EDA, custom probability-of-default (PD) modelling, and borrower risk tier segmentation — closely mirroring real-world credit underwriting workflows used by banks and NBFCs.
+This project performs end-to-end customer churn analysis on an e-commerce dataset of 2,000 customers. The goal is to identify customers at risk of churning, understand the key behavioural drivers behind churn, and build a predictive model to support targeted retention strategies.
 
 ---
 
 ## 🎯 Business Problem
-Financial institutions need to assess the likelihood that a borrower will default on a loan before approving credit. Manual rule-based systems miss complex risk signals. This project builds a data-driven risk scoring system that segments borrowers into Prime, Near-Prime, and Subprime tiers — enabling smarter lending decisions.
+E-commerce businesses lose significant revenue when customers stop purchasing. Early identification of at-risk customers allows the business to intervene with personalized offers, re-engagement campaigns, and loyalty incentives — reducing churn before it happens.
 
 **Key Questions Answered:**
-- Which financial behaviours are the strongest predictors of default?
-- How can we build a credit scorecard without a pre-labelled target variable?
-- What is the default probability distribution across different borrower segments?
-- Which features should be retained for a production-grade risk model?
+- What is the overall churn rate and how are customers distributed across subscription statuses?
+- Which customer segments (age, category, country, gender) churn the most?
+- What behavioural features (recency, frequency, inactivity) most strongly predict churn?
+- Can we build a model to predict which customers will churn next?
 
 ---
 
 ## 📂 Project Structure
 ```
-credit-risk-analysis/
+customer-churn-analysis/
 │
-├── datasets/
-│   ├── risk_analysis_dataset.csv
-│   ├── kingametric_credit_risk.csv
-│   ├── kingametric_lean_v2.csv
-│   └── final_risk_analysis_dataset.csv
+├── data/
+│   └── cleaned_ecommerce_churn_dataset.csv
 │
-├── visualizations/
-│   └── GB_selected_feature_importances.png
+├── charts/
+│   ├── churn_distribution.png
+│   ├── churn_by_age.png
+│   ├── churn_by_category.png
+│   ├── churn_by_country.png
+│   ├── churn_by_gender.png
+│   ├── recency_vs_churn.png
+│   ├── correlation_heatmap.png
+│   ├── rfm_segment_analysis.png
+│   ├── confusion_matrix.png
+│   ├── feature_importance.png
+│   └── roc_curve.png
 │
-├── sql/
-│   ├── sql_analysis.ipynb            ← Core SQL analysis queries
-│   ├── adv_sql_analysis_review.ipynb ← Advanced SQL + window functions
-│   └── sql_feature_engineering.ipynb ← SQL feature engineering in MySQL
-│
-├── Preprocess.ipynb    ← Data cleaning & preparation
-├── EDA.ipynb           ← Feature selection & encoding
-├── Model.ipynb         ← PD model & borrower tier segmentation
+├── Customer_churn_analysis.ipynb   ← Data prep & feature engineering
+├── EDA.ipynb                       ← Exploratory data analysis
+├── Model.ipynb                     ← ML model training & evaluation
 └── README.md
 ```
 
 ---
 
 ## 📊 Dataset
-- **Source:** Kaggle — Credit Risk / King-A-Metrics Dataset
-- **Raw Features:** 45 columns including income, debt, payment behaviour, credit history
-- **Final Features After Selection:** 20 (selected via Gradient Boosting feature importance)
-- **Target Variable:** `Default_Flag` (1 = Default, 0 = No Default) — engineered via custom PD formula
+- **Source:** Kaggle — E-Commerce Customer Churn Dataset
+- **Size:** 2,000 records × 17 features
+- **Target Variable:** `churn` (1 = Churned, 0 = Active)
+- **Missing Values:** 0
 
 ---
 
 ## 🔧 Tools & Technologies
 | Category | Tools |
 |---|---|
-| Language | Python 3.14, SQL (MySQL) |
+| Language | Python 3.14 |
 | Data Analysis | Pandas, NumPy |
 | Visualisation | Matplotlib, Seaborn |
-| Machine Learning | Scikit-learn, Gradient Boosting |
-| Encoding | Category Encoders (Target Encoding) |
-| Database | MySQL (via ipython-sql + PyMySQL) |
+| Machine Learning | Scikit-learn |
+| Database | MySQL (via SQLAlchemy) |
 | IDE | VS Code + Jupyter Notebook |
 
 ---
 
-## 🗄️ SQL Analysis Highlights
-40+ queries executed across 3 SQL notebooks:
-
-| Query Type | What It Analysed |
-|---|---|
-| CTEs + CASE | Debt-to-Income buckets (Low / Medium / High) |
-| Window Functions | RANK, LAG, PERCENT_RANK, Rolling Average on delayed payments |
-| Aggregations | EMI burden ratio by Credit Mix, payment behaviour frequency |
-| ALTER + UPDATE | 12 normalized features added directly to MySQL table |
-| Multi-condition CASE | Credit risk categorization (High Risk / Low-Medium Risk) |
-| Composite Scoring | Credit Score Proxy using weighted income, history, behaviour |
-
----
-
 ## ⚙️ Feature Engineering
-**12 normalized features engineered in MySQL:**
+8 new features engineered from raw data:
 
-| Feature | Formula |
+| Feature | Description |
 |---|---|
-| `normalized_dti` | Outstanding Debt / Annual Income (capped 0-1) |
-| `normalized_emi` | Total EMI / Monthly Salary (capped 0-1) |
-| `normalized_delinquency` | Delayed Payments / Num Loans (capped 0-1) |
-| `normalized_credit_history` | Credit History Age / 120 (capped 0-1) |
-| `normalized_savings` | Monthly Balance / Monthly Salary (capped 0-1) |
-| `normalized_utilization` | Credit Utilization Ratio (capped 0-1) |
-| `behavioral_risk_indicator` | Binary flag — pays minimum amount only |
-| `credit_mix_quality` | Ordinal encoding: Good=2, Standard=1, Bad=0 |
+| `recency_days` | Days since last purchase |
+| `frequency` | Total number of purchases |
+| `monetary` | Unit price × quantity |
+| `tenure_days` | Days since customer signup |
+| `avg_order_value` | Monetary / Frequency |
+| `purchase_intensity` | Orders per tenure day |
+| `inactive_ratio` | Recency / Tenure |
+| `engagement_score` | Weighted combination of frequency, recency, intensity |
 
-**7 composite features engineered in Python:**
-
-| Feature | Formula |
+**RFM Segmentation** — Customers segmented into 5 tiers:
+| Segment | Description |
 |---|---|
-| `Debt_Stress` | normalized_dti × normalized_utilization |
-| `Repayment_Stress` | normalized_emi × normalized_delinquency |
-| `Credit_Exposure` | Num Credit Cards × Utilization Ratio |
-| `Financial_Stress_Index` | Weighted sum of DTI, utilization, delinquency |
-| `Behavioral_Risk_Composite` | Combined payment behaviour indicators |
-| `Net_Cash_Flow` | Income − EMI − Investment |
-| `Obligation_Ratio` | Total obligations / Monthly income |
+| Champions | Highest RFM score — loyal, active, high value |
+| Loyal Customers | Regular buyers with strong engagement |
+| Potential Loyalists | Moderate engagement — growth opportunity |
+| At Risk | Declining activity — intervention needed |
+| Lost | Inactive, high churn probability |
 
 ---
 
-## 🤖 Probability of Default Model
+## 📈 Key EDA Findings
+- Overall churn rate: **24.6%**
+- 15.2% of customers are **Paused** — a soft-churn at-risk segment
+- **Inactive ratio** and **recency days** showed the strongest correlation with churn
+- Lost and At-Risk RFM segments had the highest churn rates
+- Champions segment had near-zero churn despite being the smallest group
 
-**Custom 8-factor weighted risk score formula:**
-```
-Risk Score =
-  0.22 × (Outstanding_Debt / Annual_Income)
-+ 0.18 × (Total_EMI / Monthly_Salary)
-+ 0.18 × (Delayed_Payments / Num_Loans)
-+ 0.12 × (Credit_Utilization / 100)
-+ 0.10 × (Num_Credit_Inquiries / 10)
-+ 0.10 × (1 − Credit_History_Age / 120)
-+ 0.05 × (Delay_from_due_date / 30)
-+ 0.05 × (1 − Monthly_Balance / Monthly_Salary)
-```
+---
 
-Probability of default derived via sigmoid transformation:
-```python
-prob_default = 1 / (1 + exp(−z))
-```
+## 🤖 Model Results
 
-**Borrower Tier Segmentation:**
-| Tier | Default Rate | Description |
+Two models trained and compared:
+
+| Model | ROC-AUC | Notes |
 |---|---|---|
-| Prime | ~10% | Low risk — strong financials |
-| Near-Prime | ~25% | Moderate risk — needs monitoring |
-| Subprime | ~55% | High risk — credit intervention needed |
+| Logistic Regression | > 0.75 | Interpretable, good for stakeholder communication |
+| Random Forest | > 0.75 | Better recall on churned customers |
 
----
-
-## 🔍 Feature Selection
-- Used **Gradient Boosting Classifier** with `SelectFromModel`
-- **Target Encoding** applied to categorical variables (smoothing=10)
-- Reduced 51 features → **top 20 most predictive features**
-- Bottom 20 noise features removed before final model training
+- **Class imbalance** handled using `class_weight='balanced'`
+- **Stratified K-Fold** cross validation used for reliable evaluation
+- **ROC-AUC** used as primary metric (preferred over accuracy for imbalanced data)
 
 ---
 
 ## 💡 Business Recommendations
-1. **Decline or price higher** for Subprime borrowers (55% default rate)
-2. **Monitor Near-Prime borrowers** monthly — small changes push them to Subprime
-3. **Flag accounts** where `normalized_delinquency > 0.5` AND `normalized_dti > 0.4` for early intervention
-4. **Use Credit Score Proxy** as a lightweight pre-screening tool before full underwriting
-5. **Prioritize customers** with `Payment_of_Min_Amount = Yes` — strong default predictor
+1. **Target Lost + At-Risk segments** with re-engagement campaigns (discounts, loyalty rewards)
+2. **Monitor Paused customers** — 303 customers (15.2%) are soft-churning and need immediate outreach
+3. **Focus retention spend on high inactive_ratio customers** — strongest churn predictor
+4. **Protect Champions** — small segment but highest lifetime value, prioritize VIP treatment
+5. **Use model scores weekly** to flag newly at-risk customers before they fully churn
 
 ---
 
 ## 🚀 How to Run
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR-USERNAME/credit-risk-analysis.git
+git clone https://github.com/YOUR-USERNAME/customer-churn-analysis.git
 
 # Install dependencies
-pip install pandas numpy matplotlib seaborn scikit-learn category-encoders ipython-sql pymysql jupyter
+pip install pandas numpy matplotlib seaborn scikit-learn jupyter notebook
 
 # Open Jupyter
 python -m notebook
 ```
 Run notebooks in this order:
-1. `Preprocess.ipynb` — data cleaning
-2. SQL notebooks — feature engineering in MySQL
-3. `EDA.ipynb` — feature selection
-4. `Model.ipynb` — PD model and tier segmentation
+1. `Customer_churn_analysis.ipynb` — data prep
+2. `EDA.ipynb` — analysis and charts
+3. `Model.ipynb` — model training
 
 ---
 
